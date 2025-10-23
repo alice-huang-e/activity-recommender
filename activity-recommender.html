@@ -502,6 +502,11 @@
 
             <button type="submit">Get Recommendations</button>
             <button type="button" id="surpriseBtn" style="margin-top: 10px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">Surprise Me!</button>
+
+            <div style="margin-top: 20px; padding: 15px; background: #f0f8ff; border-radius: 8px; text-align: center;">
+                <p style="font-size: 13px; color: #666; margin-bottom: 8px;">💾 Your preferences are automatically saved in your browser</p>
+                <button type="button" onclick="clearPreferences()" style="background: #e74c3c; padding: 8px 16px; font-size: 13px;">Clear Saved Preferences</button>
+            </div>
         </form>
 
         <div id="recommendation" class="recommendation"></div>
@@ -574,6 +579,79 @@
         let excludedPlaces = new Set();
         let allPlacesCache = []; // Cache of places for autocomplete
 
+        // Load saved preferences from localStorage
+        function loadSavedPreferences() {
+            try {
+                const saved = localStorage.getItem('activityRecommenderPrefs');
+                if (saved) {
+                    const prefs = JSON.parse(saved);
+
+                    // Restore location
+                    if (prefs.location) {
+                        document.getElementById('location').value = prefs.location;
+                    }
+
+                    // Restore interests
+                    if (prefs.interests) {
+                        prefs.interests.forEach(interest => {
+                            const checkbox = document.querySelector(`input[value="${interest}"]`);
+                            if (checkbox) {
+                                checkbox.checked = true;
+                                checkbox.closest('.interest-option').classList.add('selected');
+                            }
+                        });
+                    }
+
+                    // Restore radius
+                    if (prefs.radius) {
+                        document.getElementById('radius').value = prefs.radius;
+                    }
+
+                    // Restore exclude chains
+                    if (prefs.excludeChains !== undefined) {
+                        document.getElementById('excludeChains').checked = prefs.excludeChains;
+                    }
+
+                    // Restore excluded places
+                    if (prefs.excludedPlaces) {
+                        excludedPlaces = new Set(prefs.excludedPlaces);
+                        hiddenPlaces = new Set(prefs.excludedPlaces);
+                        updateExcludedPlacesDisplay();
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading preferences:', error);
+            }
+        }
+
+        // Save preferences to localStorage
+        function savePreferences() {
+            try {
+                const prefs = {
+                    location: document.getElementById('location').value,
+                    interests: Array.from(document.querySelectorAll('input[name="interests"]:checked')).map(cb => cb.value),
+                    radius: document.getElementById('radius').value,
+                    excludeChains: document.getElementById('excludeChains').checked,
+                    excludedPlaces: Array.from(excludedPlaces)
+                };
+
+                localStorage.setItem('activityRecommenderPrefs', JSON.stringify(prefs));
+            } catch (error) {
+                console.error('Error saving preferences:', error);
+            }
+        }
+
+        // Load preferences when page loads
+        window.addEventListener('load', loadSavedPreferences);
+
+        // Clear all saved preferences
+        function clearPreferences() {
+            if (confirm('Are you sure you want to clear all saved preferences? This will reset your location, interests, and excluded places.')) {
+                localStorage.removeItem('activityRecommenderPrefs');
+                location.reload(); // Reload page to show cleared state
+            }
+        }
+
         // Autocomplete functionality
         const excludePlacesInput = document.getElementById('excludePlaces');
         const suggestionsDiv = document.getElementById('autocompleteSuggestions');
@@ -626,12 +704,14 @@
             excludedPlaces.add(placeName);
             hiddenPlaces.add(placeName);
             updateExcludedPlacesDisplay();
+            savePreferences(); // Save when adding excluded place
         }
 
         function removeExcludedPlace(placeName) {
             excludedPlaces.delete(placeName);
             hiddenPlaces.delete(placeName);
             updateExcludedPlacesDisplay();
+            savePreferences(); // Save when removing excluded place
         }
 
         function updateExcludedPlacesDisplay() {
@@ -674,6 +754,9 @@
                 alert('Please select at least one interest!');
                 return;
             }
+
+            // Save preferences before searching
+            savePreferences();
 
             processSearch(location, timeOfDay, duration, selectedInterests, false, radius, excludeChains);
         });
@@ -1198,5 +1281,8 @@
             return minutes > 0 ? `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}` : `${displayHours}:00 ${period}`;
         }
     </script>
+</body>
+</html>
+
 </body>
 </html>
