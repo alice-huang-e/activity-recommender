@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Recommender</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="time"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .interests-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .interests-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .interest-option {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .interest-option:hover {
+            background-color: #f5f5f5;
+        }
+
+        .interest-option.selected {
+            background-color: #667eea;
+            border-color: #667eea;
+            color: white;
+        }
+
+        .interest-option input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .interest-option label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: normal;
+            flex: 1;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .recommendation {
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            display: none;
+        }
+
+        .recommendation.show {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .recommendation h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 22px;
+        }
+
+        .recommendation-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            position: relative;
+            transition: opacity 0.3s;
+        }
+
+        .recommendation-item.hidden {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .hide-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 30px;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .hide-btn:hover {
+            background: #c0392b;
+        }
+
+        .refresh-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .recommendation-item h3 {
+            color: #667eea;
+            margin-bottom: 5px;
+            font-size: 18px;
+        }
+
+        .recommendation-item p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .error {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .address {
+            font-size: 13px;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .email-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .email-btn {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            padding: 12px 24px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .excluded-tag {
+            background: #f5576c;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 16px;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .excluded-tag button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .autocomplete-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .autocomplete-item:hover {
+            background: #f5f5f5;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Activity Recommender</h1>
+        <p class="subtitle">Tell us your preferences and we'll suggest something great to do!</p>
+
+        <form id="recommendationForm">
+            <div class="form-group">
+                <label for="location">Location</label>
+                <input type="text" id="location" name="location" placeholder="e.g., San Francisco, CA or 94102" required>
+                <p class="info-text">Enter your city, neighborhood, or zip code</p>
+            </div>
+
+            <div class="form-group">
+                <label>Interests (select all that apply)</label>
+                <div class="interests-grid">
+                    <div class="interest-option" onclick="toggleInterest(this)">
+                        <input type="checkbox" id="cafes" name="interests" value="cafes">
+                        <label for="cafes">☕ Cafes</label>
+                    </div>
+                    <div class="interest-option" onclick="toggleInterest(this)">
+                        <input type="checkbox" id="museums" name="interests" value="museums">
+                        <label for="museums">🏛️ Museums</label>
+                    </div>
+                    <div class="interest-option" onclick="toggleInterest(this)">
+                        <input type="checkbox" id="historical" name="interests" value="historical">
+                        <label for="historical">🏰 Historical Sites</label>
+                    </div>
+                    <div class="interest-option" onclick="toggleInterest(this)">
+                        <input type="checkbox" id="parks" name="interests" value="parks">
+                        <label for="parks">🌳 Parks</label>
+                    </div>
+                    <div class="interest-option" onclick="toggleInterest(this)">
+                        <input type="checkbox" id="restaurants" name="interests" value="restaurants">
+                        <label for="restaurants">🍽️ Restaurants</label>
+                    </div>
+                    <div class="interest-option" onclick="toggleInterest(this)">
+                        <input type="checkbox" id="shopping" name="interests" value="shopping">
+                        <label for="shopping">🛍️ Shopping</label>
+                    </div>
+                    <div class="interest-option" onclick="toggleInterest(this)">
+                        <input type="checkbox" id="entertainment" name="interests" value="entertainment">
+                        <label for="entertainment">🎬 Entertainment</label>
+                    </div>
+                    <div class="interest-option" onclick="toggleInterest(this)">
+                        <input type="checkbox" id="outdoor" name="interests" value="outdoor">
+                        <label for="outdoor">⛰️ Outdoor Activities</label>
+                    </div>
+                    <div class="interest-option" onclick="toggleInterest(this)">
+                        <input type="checkbox" id="bars" name="interests" value="bars">
+                        <label for="bars">🍺 Bars & Pubs</label>
+                    </div>
+                    <div class="interest-option" onclick="toggleInterest(this)">
+                        <input type="checkbox" id="libraries" name="interests" value="libraries">
+                        <label for="libraries">📚 Libraries</label>
+                    </div>
+                    <div class="interest-option" onclick="toggleInterest(this)">
+                        <input type="checkbox" id="galleries" name="interests" value="galleries">
+                        <label for="galleries">🎨 Art Galleries</label>
+                    </div>
+                    <div class="interest-option" onclick="toggleInterest(this)">
+                        <input type="checkbox" id="fitness" name="interests" value="fitness">
+                        <label for="fitness">💪 Fitness & Sports</label>
+                    </div>
+                    <div class="interest-option" onclick="toggleInterest(this)">
+                        <input type="checkbox" id="spa" name="interests" value="spa">
+                        <label for="spa">💆 Spa & Wellness</label>
+                    </div>
+                    <div class="interest-option" onclick="toggleInterest(this)">
+                        <input type="checkbox" id="bookstores" name="interests" value="bookstores">
+                        <label for="bookstores">📖 Bookstores</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="timeOfDay">What time do you want to go?</label>
+                <select id="timeOfDay" name="timeOfDay" required>
+                    <option value="">Select time</option>
+                    <option value="5:00">5:00 AM</option>
+                    <option value="5:30">5:30 AM</option>
+                    <option value="6:00">6:00 AM</option>
+                    <option value="6:30">6:30 AM</option>
+                    <option value="7:00">7:00 AM</option>
+                    <option value="7:30">7:30 AM</option>
+                    <option value="8:00">8:00 AM</option>
+                    <option value="8:30">8:30 AM</option>
+                    <option value="9:00">9:00 AM</option>
+                    <option value="9:30">9:30 AM</option>
+                    <option value="10:00">10:00 AM</option>
+                    <option value="10:30">10:30 AM</option>
+                    <option value="11:00">11:00 AM</option>
+                    <option value="11:30">11:30 AM</option>
+                    <option value="12:00">12:00 PM</option>
+                    <option value="12:30">12:30 PM</option>
+                    <option value="13:00">1:00 PM</option>
+                    <option value="13:30">1:30 PM</option>
+                    <option value="14:00">2:00 PM</option>
+                    <option value="14:30">2:30 PM</option>
+                    <option value="15:00">3:00 PM</option>
+                    <option value="15:30">3:30 PM</option>
+                    <option value="16:00">4:00 PM</option>
+                    <option value="16:30">4:30 PM</option>
+                    <option value="17:00">5:00 PM</option>
+                    <option value="17:30">5:30 PM</option>
+                    <option value="18:00">6:00 PM</option>
+                    <option value="18:30">6:30 PM</option>
+                    <option value="19:00">7:00 PM</option>
+                    <option value="19:30">7:30 PM</option>
+                    <option value="20:00">8:00 PM</option>
+                    <option value="20:30">8:30 PM</option>
+                    <option value="21:00">9:00 PM</option>
+                    <option value="21:30">9:30 PM</option>
+                    <option value="22:00">10:00 PM</option>
+                    <option value="22:30">10:30 PM</option>
+                    <option value="23:00">11:00 PM</option>
+                    <option value="23:30">11:30 PM</option>
+                    <option value="0:00">12:00 AM (Midnight)</option>
+                </select>
+                <p class="info-text">We'll make sure the place is open</p>
+            </div>
+
+            <div class="form-group">
+                <label for="duration">How much time do you have?</label>
+                <select id="duration" name="duration" required>
+                    <option value="">Select duration</option>
+                    <option value="0.5">30 minutes</option>
+                    <option value="1">1 hour</option>
+                    <option value="1.5">1.5 hours</option>
+                    <option value="2">2 hours</option>
+                    <option value="2.5">2.5 hours</option>
+                    <option value="3">3 hours</option>
+                    <option value="3.5">3.5 hours</option>
+                    <option value="4">4 hours</option>
+                    <option value="4.5">4.5 hours</option>
+                    <option value="5">5 hours</option>
+                    <option value="6">6 hours</option>
+                    <option value="8">8 hours</option>
+                    <option value="10">10 hours</option>
+                    <option value="12">Full day (12+ hours)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="radius">Search radius</label>
+                <select id="radius" name="radius">
+                    <option value="1600">1 mile</option>
+                    <option value="3200">2 miles</option>
+                    <option value="5000" selected>3 miles</option>
+                    <option value="8000">5 miles</option>
+                    <option value="16000">10 miles</option>
+                    <option value="32000">20 miles</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" id="excludeChains" name="excludeChains" style="margin-right: 8px;">
+                    <span>Hide chain restaurants & franchises</span>
+                </label>
+                <p class="info-text">Filter out well-known chains to discover local spots</p>
+            </div>
+
+            <div class="form-group">
+                <label for="excludePlaces">Already been here? (exclude places)</label>
+                <input type="text" id="excludePlaces" name="excludePlaces" placeholder="Type place names to exclude (e.g., Blue Bottle Coffee)">
+                <p class="info-text">Start typing and we'll show suggestions. Press Enter or comma to add multiple.</p>
+                <div id="excludedPlacesList" style="margin-top: 10px; display: none;">
+                    <p style="font-size: 12px; color: #666; margin-bottom: 5px;">Excluded places:</p>
+                    <div id="excludedTags" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>
+                </div>
+                <div id="autocompleteSuggestions" style="display: none; border: 1px solid #e0e0e0; border-radius: 4px; margin-top: 5px; max-height: 200px; overflow-y: auto; background: white; position: relative; z-index: 1000;"></div>
+            </div>
+
+            <button type="submit">Get Recommendations</button>
+            <button type="button" id="surpriseBtn" style="margin-top: 10px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">Surprise Me!</button>
+        </form>
+
+        <div id="recommendation" class="recommendation"></div>
+    </div>
+
+    <script>
+        function toggleInterest(element) {
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+            element.classList.toggle('selected');
+        }
+
+        // Mapping of interests to OpenStreetMap tags
+        const osmTagMapping = {
+            cafes: 'amenity=cafe',
+            museums: 'tourism=museum',
+            historical: 'historic',
+            parks: 'leisure=park',
+            restaurants: 'amenity=restaurant',
+            shopping: 'shop',
+            entertainment: 'amenity=cinema|amenity=theatre',
+            outdoor: 'leisure=park|natural=beach',
+            bars: 'amenity=bar|amenity=pub',
+            libraries: 'amenity=library',
+            galleries: 'tourism=gallery',
+            fitness: 'leisure=fitness_centre|leisure=sports_centre',
+            spa: 'leisure=spa|shop=beauty',
+            bookstores: 'shop=books'
+        };
+
+        // Surprise Me button handler
+        document.getElementById('surpriseBtn').addEventListener('click', async function() {
+            // Randomly select 2-4 interests
+            const allInterests = Object.keys(osmTagMapping);
+            const numInterests = Math.floor(Math.random() * 3) + 2; // 2-4 interests
+            const randomInterests = [];
+
+            while (randomInterests.length < numInterests) {
+                const randomInterest = allInterests[Math.floor(Math.random() * allInterests.length)];
+                if (!randomInterests.includes(randomInterest)) {
+                    randomInterests.push(randomInterest);
+                }
+            }
+
+            // Randomly select time (between 8 AM and 8 PM)
+            const times = ['8:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
+            const randomTime = times[Math.floor(Math.random() * times.length)];
+
+            // Randomly select duration (1-4 hours)
+            const durations = [1, 2, 3, 4];
+            const randomDuration = durations[Math.floor(Math.random() * durations.length)];
+
+            // Get location (required)
+            const location = document.getElementById('location').value;
+            if (!location) {
+                alert('Please enter a location first!');
+                return;
+            }
+
+            // Get radius and chain exclusion settings
+            const radius = parseInt(document.getElementById('radius').value);
+            const excludeChains = document.getElementById('excludeChains').checked;
+
+            // Process the surprise search
+            processSearch(location, randomTime, randomDuration, randomInterests, true, radius, excludeChains);
+        });
+
+        // Store hidden recommendations and manually excluded places
+        let hiddenPlaces = new Set();
+        let excludedPlaces = new Set();
+        let allPlacesCache = []; // Cache of places for autocomplete
+
+        // Autocomplete functionality
+        const excludePlacesInput = document.getElementById('excludePlaces');
+        const suggestionsDiv = document.getElementById('autocompleteSuggestions');
+
+        excludePlacesInput.addEventListener('input', async function(e) {
+            const query = e.target.value.trim();
+
+            if (query.length < 2) {
+                suggestionsDiv.style.display = 'none';
+                return;
+            }
+
+            // Search in cached places
+            const matches = allPlacesCache.filter(place =>
+                place.toLowerCase().includes(query.toLowerCase())
+            ).slice(0, 10);
+
+            if (matches.length > 0) {
+                showSuggestions(matches);
+            } else {
+                suggestionsDiv.style.display = 'none';
+            }
+        });
+
+        excludePlacesInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                addExcludedPlace(e.target.value.trim());
+                e.target.value = '';
+                suggestionsDiv.style.display = 'none';
+            }
+        });
+
+        function showSuggestions(matches) {
+            suggestionsDiv.innerHTML = matches.map(place =>
+                `<div class="autocomplete-item" onclick="selectSuggestion('${place.replace(/'/g, "\\'")}')">${place}</div>`
+            ).join('');
+            suggestionsDiv.style.display = 'block';
+        }
+
+        function selectSuggestion(placeName) {
+            addExcludedPlace(placeName);
+            excludePlacesInput.value = '';
+            suggestionsDiv.style.display = 'none';
+        }
+
+        function addExcludedPlace(placeName) {
+            if (!placeName || excludedPlaces.has(placeName)) return;
+
+            excludedPlaces.add(placeName);
+            hiddenPlaces.add(placeName);
+            updateExcludedPlacesDisplay();
+        }
+
+        function removeExcludedPlace(placeName) {
+            excludedPlaces.delete(placeName);
+            hiddenPlaces.delete(placeName);
+            updateExcludedPlacesDisplay();
+        }
+
+        function updateExcludedPlacesDisplay() {
+            const listDiv = document.getElementById('excludedPlacesList');
+            const tagsDiv = document.getElementById('excludedTags');
+
+            if (excludedPlaces.size === 0) {
+                listDiv.style.display = 'none';
+                return;
+            }
+
+            listDiv.style.display = 'block';
+            tagsDiv.innerHTML = Array.from(excludedPlaces).map(place =>
+                `<div class="excluded-tag">
+                    ${place}
+                    <button onclick="removeExcludedPlace('${place.replace(/'/g, "\\'")}')" title="Remove">×</button>
+                </div>`
+            ).join('');
+        }
+
+        // Click outside to close suggestions
+        document.addEventListener('click', function(e) {
+            if (!excludePlacesInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                suggestionsDiv.style.display = 'none';
+            }
+        });
+
+        document.getElementById('recommendationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const location = document.getElementById('location').value;
+            const timeOfDay = document.getElementById('timeOfDay').value;
+            const duration = parseFloat(document.getElementById('duration').value);
+            const radius = parseInt(document.getElementById('radius').value);
+            const excludeChains = document.getElementById('excludeChains').checked;
+            const selectedInterests = Array.from(document.querySelectorAll('input[name="interests"]:checked'))
+                .map(cb => cb.value);
+
+            if (selectedInterests.length === 0) {
+                alert('Please select at least one interest!');
+                return;
+            }
+
+            processSearch(location, timeOfDay, duration, selectedInterests, false, radius, excludeChains);
+        });
+
+        async function processSearch(location, timeOfDay, duration, selectedInterests, isSurprise, radius = 5000, excludeChains = false) {
+
+            // Convert time to hours (24-hour format)
+            const [hours, minutes] = timeOfDay.split(':').map(Number);
+            const timeInHours = hours + minutes / 60;
+            const dayOfWeek = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+            // Show loading state
+            const recDiv = document.getElementById('recommendation');
+            recDiv.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>${isSurprise ? 'Surprising you with' : 'Finding'} real places near ${location}...</p>
+                </div>
+            `;
+            recDiv.classList.add('show');
+
+            try {
+                // First, geocode the location to get coordinates
+                console.log('Searching for location:', location);
+                const coords = await geocodeLocation(location);
+
+                if (!coords) {
+                    throw new Error('Could not find location');
+                }
+
+                console.log('Found coordinates:', coords);
+
+                // Fetch real places for each interest
+                const recommendations = await fetchRealPlaces(coords, selectedInterests, timeInHours, duration, dayOfWeek, radius, excludeChains);
+
+                console.log('Found recommendations:', recommendations.length);
+
+                // Display recommendations
+                displayRecommendations(recommendations, location, timeOfDay, duration, isSurprise, selectedInterests);
+            } catch (error) {
+                console.error('Full error:', error);
+                recDiv.innerHTML = `
+                    <h2>Error</h2>
+                    <p class="error">Sorry, we couldn't find places near "${location}". Please try a different location or check your internet connection.</p>
+                    <p class="info-text">Error: ${error.message}</p>
+                    <p class="info-text">Check the browser console (F12) for more details.</p>
+                `;
+            }
+        }
+
+        async function geocodeLocation(location) {
+            // Use Nominatim to geocode the location, prioritize US results
+            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=5&countrycodes=us`;
+
+            try {
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error(`Geocoding failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data && data.length > 0) {
+                    // Prefer results in the US
+                    const usResult = data.find(result =>
+                        result.display_name && result.display_name.includes('United States')
+                    ) || data[0];
+
+                    return {
+                        lat: parseFloat(usResult.lat),
+                        lon: parseFloat(usResult.lon)
+                    };
+                }
+
+                return null;
+            } catch (error) {
+                console.error('Geocoding error:', error);
+                throw new Error('Unable to find location. Please try a more specific address.');
+            }
+        }
+
+        // Common chain restaurants and franchises to filter out
+        const chainKeywords = [
+            'mcdonalds', 'mcdonald', 'burger king', 'wendys', 'subway', 'starbucks',
+            'dunkin', 'chipotle', 'panera', 'taco bell', 'pizza hut', 'dominos',
+            'papa johns', 'kfc', 'chick-fil-a', 'chickfila', 'popeyes', 'arbys',
+            'sonic', 'dairy queen', 'five guys', 'shake shack', 'in-n-out',
+            'applebees', 'chilis', 'olive garden', 'red lobster', 'outback',
+            'buffalo wild wings', 'cheesecake factory', 'pf chang', 'benihana',
+            'ihop', 'denny', 'waffle house', 'cracker barrel', 'bob evans',
+            'amc', 'regal', 'cinemark', 'target', 'walmart', 'cvs', 'walgreens'
+        ];
+
+        function isChainRestaurant(name) {
+            const lowerName = name.toLowerCase();
+            return chainKeywords.some(chain => lowerName.includes(chain));
+        }
+
+        async function fetchRealPlaces(coords, interests, timeInHours, duration, dayOfWeek, radius = 5000, excludeChains = false) {
+            const recommendations = [];
+
+            for (const interest of interests) {
+                const osmTag = osmTagMapping[interest];
+                if (!osmTag) continue;
+
+                // Build Overpass query
+                const query = buildOverpassQuery(coords, radius, osmTag);
+
+                try {
+                    const places = await queryOverpass(query);
+                    console.log(`Found ${places.length} raw places for ${interest}`);
+
+                    if (places && places.length > 0) {
+                        // Filter to only include places with tags and valid names
+                        const validPlaces = places.filter(place => {
+                            if (!place.tags || Object.keys(place.tags).length === 0) {
+                                return false;
+                            }
+                            // Must have a name
+                            if (!place.tags.name) {
+                                return false;
+                            }
+                            // Filter out non-Latin script names (basic check for non-English)
+                            const hasNonLatin = /[^\x00-\x7F\u00C0-\u00FF\u0100-\u017F]/.test(place.tags.name);
+                            if (hasNonLatin) {
+                                return false;
+                            }
+                            // Filter out chains if requested
+                            if (excludeChains && isChainRestaurant(place.tags.name)) {
+                                return false;
+                            }
+                            // Filter out hidden places
+                            if (hiddenPlaces.has(place.tags.name)) {
+                                return false;
+                            }
+                            return true;
+                        });
+                        console.log(`${validPlaces.length} valid places with tags for ${interest}`);
+
+                        // Filter based on opening hours if available
+                        const suitablePlaces = validPlaces.filter(place => {
+                            if (place.tags.opening_hours) {
+                                return isOpenAt(place.tags.opening_hours, dayOfWeek, timeInHours);
+                            }
+                            return true; // Include if no opening hours info
+                        });
+
+                        // Pick up to 5 random places per category
+                        const selected = suitablePlaces
+                            .sort(() => 0.5 - Math.random())
+                            .slice(0, 5);
+
+                        selected.forEach(place => {
+                            recommendations.push({
+                                category: interest.charAt(0).toUpperCase() + interest.slice(1),
+                                place: place
+                            });
+
+                            // Add to autocomplete cache
+                            if (place.tags.name && !allPlacesCache.includes(place.tags.name)) {
+                                allPlacesCache.push(place.tags.name);
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error(`Error fetching ${interest}:`, error);
+                }
+            }
+
+            return recommendations;
+        }
+
+        function buildOverpassQuery(coords, radius, osmTag) {
+            const tags = osmTag.split('|');
+            let nodeQuery = '';
+            let wayQuery = '';
+
+            tags.forEach(tag => {
+                if (tag.includes('=')) {
+                    const [key, value] = tag.split('=');
+                    nodeQuery += `node["${key}"="${value}"](around:${radius},${coords.lat},${coords.lon});`;
+                    wayQuery += `way["${key}"="${value}"](around:${radius},${coords.lat},${coords.lon});`;
+                } else {
+                    nodeQuery += `node["${tag}"](around:${radius},${coords.lat},${coords.lon});`;
+                    wayQuery += `way["${tag}"](around:${radius},${coords.lat},${coords.lon});`;
+                }
+            });
+
+            return `
+                [out:json][timeout:25];
+                (
+                    ${nodeQuery}
+                    ${wayQuery}
+                );
+                out body;
+                >;
+                out skel qt;
+            `;
+        }
+
+        async function queryOverpass(query) {
+            const url = 'https://overpass-api.de/api/interpreter';
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: query
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Overpass API failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.elements || [];
+            } catch (error) {
+                console.error('Overpass API error:', error);
+                return [];
+            }
+        }
+
+        function isOpenAt(openingHours, dayOfWeek, timeInHours) {
+            // Simple opening hours parser (handles basic cases)
+            // For complex opening hours, we'll just return true
+            try {
+                if (openingHours === '24/7') return true;
+
+                // This is a simplified parser - real opening hours can be very complex
+                // For now, we'll be optimistic and return true if we can't parse
+                return true;
+            } catch {
+                return true;
+            }
+        }
+
+        function displayRecommendations(recommendations, location, timeOfDay, duration, isSurprise, selectedInterests) {
+            const recDiv = document.getElementById('recommendation');
+
+            if (recommendations.length === 0) {
+                recDiv.innerHTML = `
+                    <h2>No Recommendations Found</h2>
+                    <p class="error">We couldn't find specific places matching your criteria near "${location}". Try broadening your search or selecting different interests.</p>
+                `;
+            } else {
+                let html = isSurprise
+                    ? `<h2>Surprise! Here's what we found near ${location}</h2>`
+                    : `<h2>Recommendations near ${location}</h2>`;
+
+                if (isSurprise) {
+                    const interestNames = selectedInterests.map(i => i.charAt(0).toUpperCase() + i.slice(1)).join(', ');
+                    html += `<p style="margin-bottom: 20px; color: #666;">We randomly picked: ${interestNames} at ${formatTimeDisplay(timeOfDay)} for ${duration} hour(s)!</p>`;
+                } else {
+                    html += `<p style="margin-bottom: 20px; color: #666;">Real places for ${formatTimeDisplay(timeOfDay)} with ${duration} hour(s) available:</p>`;
+                }
+
+                recommendations.forEach(rec => {
+                    const place = rec.place;
+
+                    // Safety checks for place data
+                    if (!place || !place.tags) {
+                        console.warn('Invalid place data:', place);
+                        return;
+                    }
+
+                    const name = place.tags.name || 'Unnamed location';
+                    const address = formatAddress(place.tags);
+                    const description = place.tags.description || getDefaultDescription(rec.category);
+                    const website = place.tags.website || place.tags['contact:website'] || null;
+
+                    // Create Google search query
+                    const searchQuery = address
+                        ? `${name} ${address}`
+                        : `${name} ${location}`;
+                    const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`;
+
+                    // Create events search for museums, theaters, galleries
+                    const eventCategories = ['Museums', 'Entertainment', 'Galleries'];
+                    const eventsSearchUrl = eventCategories.includes(rec.category)
+                        ? `https://www.google.com/search?q=${encodeURIComponent(name + ' events today')}`
+                        : null;
+
+                    // Create OpenStreetMap link
+                    const osmUrl = place.lat && place.lon
+                        ? `https://www.openstreetmap.org/?mlat=${place.lat}&mlon=${place.lon}&zoom=18`
+                        : null;
+
+                    // Create data attributes for individual emailing
+                    const emailData = {
+                        name: name,
+                        category: rec.category,
+                        address: address,
+                        description: description,
+                        website: website,
+                        googleUrl: googleSearchUrl,
+                        osmUrl: osmUrl,
+                        eventsUrl: eventsSearchUrl
+                    };
+
+                    const categoryIcon = getCategoryIcon(rec.category);
+
+                    html += `
+                        <div class="recommendation-item" data-email='${JSON.stringify(emailData).replace(/'/g, "&apos;")}' data-name="${name}">
+                            <button class="hide-btn" onclick="hideRecommendation(this)" title="Hide this recommendation">×</button>
+                            <h3>${name}</h3>
+                            <p><strong>${categoryIcon} ${rec.category}</strong></p>
+                            ${address ? `<p class="address">${address}</p>` : ''}
+                            <p>${description}</p>
+                            <p style="margin-top: 10px;">
+                                ${website ? `<a href="${website}" target="_blank" style="color: #11998e; text-decoration: none; margin-right: 15px;">🌐 Website</a>` : ''}
+                                <a href="${googleSearchUrl}" target="_blank" style="color: #667eea; text-decoration: none; margin-right: 15px;">🔍 Search on Google</a>
+                                ${osmUrl ? `<a href="${osmUrl}" target="_blank" style="color: #667eea; text-decoration: none; margin-right: 15px;">📍 View on Map</a>` : ''}
+                                ${eventsSearchUrl ? `<a href="${eventsSearchUrl}" target="_blank" style="color: #f5576c; text-decoration: none; margin-right: 15px;">🎭 Find Events</a>` : ''}
+                                <a href="#" onclick="emailSingleRecommendation(this); return false;" style="color: #f5576c; text-decoration: none;">📧 Email This</a>
+                            </p>
+                        </div>
+                    `;
+                });
+
+                // Add refresh and email buttons
+                html += `
+                    <div class="refresh-section">
+                        <button class="refresh-btn" onclick="refreshRecommendations()">🔄 Show Me Different Places</button>
+                        <p style="color: #999; font-size: 12px; margin-top: 10px;">Get new recommendations with the same criteria</p>
+                    </div>
+                    <div class="email-section">
+                        <p style="color: #666; margin-bottom: 10px;">Want to save these recommendations?</p>
+                        <button class="email-btn" onclick="emailRecommendations()">📧 Email All Recommendations</button>
+                        <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
+                        <p style="color: #666; margin-bottom: 10px;">Get weekend recommendations every Friday!</p>
+                        <button class="email-btn" onclick="setupWeekendSubscription()" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">🎉 Set Up Weekend Emails</button>
+                    </div>
+                `;
+
+                recDiv.innerHTML = html;
+            }
+
+            recDiv.classList.add('show');
+            recDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function hideRecommendation(button) {
+            const recItem = button.closest('.recommendation-item');
+            const placeName = recItem.getAttribute('data-name');
+
+            // Add to hidden places
+            hiddenPlaces.add(placeName);
+
+            // Visually hide the item
+            recItem.classList.add('hidden');
+
+            // Show a message
+            setTimeout(() => {
+                recItem.style.display = 'none';
+            }, 300);
+        }
+
+        function refreshRecommendations() {
+            // Re-submit the form to get new recommendations
+            document.getElementById('recommendationForm').dispatchEvent(new Event('submit'));
+        }
+
+        function emailSingleRecommendation(element) {
+            const recItem = element.closest('.recommendation-item');
+            const data = JSON.parse(recItem.getAttribute('data-email'));
+
+            let emailSubject = `Check out: ${data.name}`;
+            let emailBody = `I found this place you might like:\n\n`;
+            emailBody += `${data.name}\n`;
+            emailBody += `${data.category}\n`;
+            if (data.address) emailBody += `${data.address}\n`;
+            emailBody += `\n${data.description}\n\n`;
+
+            emailBody += `Links:\n`;
+            if (data.website) emailBody += `Website: ${data.website}\n`;
+            emailBody += `Google Search: ${data.googleUrl}\n`;
+            if (data.osmUrl) emailBody += `Map: ${data.osmUrl}\n`;
+            if (data.eventsUrl) emailBody += `Events: ${data.eventsUrl}\n`;
+
+            emailBody += '\n\nGenerated by Activity Recommender';
+
+            const mailtoLink = `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+            window.location.href = mailtoLink;
+        }
+
+        function emailRecommendations() {
+            const recDiv = document.getElementById('recommendation');
+            const recommendations = recDiv.querySelectorAll('.recommendation-item');
+
+            if (recommendations.length === 0) {
+                alert('No recommendations to email!');
+                return;
+            }
+
+            // Build email body
+            let emailSubject = 'Activity Recommendations';
+            let emailBody = 'Here are your activity recommendations:\n\n';
+
+            recommendations.forEach((rec, index) => {
+                const data = JSON.parse(rec.getAttribute('data-email'));
+
+                emailBody += `${index + 1}. ${data.name}\n`;
+                emailBody += `   ${data.category}\n`;
+                if (data.address) emailBody += `   ${data.address}\n`;
+                if (data.website) emailBody += `   Website: ${data.website}\n`;
+                emailBody += `   Search: ${data.googleUrl}\n`;
+                emailBody += `\n`;
+            });
+
+            emailBody += '\nGenerated by Activity Recommender';
+
+            // Create mailto link
+            const mailtoLink = `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+
+            // Open email client
+            window.location.href = mailtoLink;
+        }
+
+        function setupWeekendSubscription() {
+            const location = document.getElementById('location').value;
+            const selectedInterests = Array.from(document.querySelectorAll('input[name="interests"]:checked'))
+                .map(cb => cb.value);
+
+            if (!location) {
+                alert('Please enter a location first!');
+                return;
+            }
+
+            if (selectedInterests.length === 0) {
+                alert('Please select at least one interest!');
+                return;
+            }
+
+            const interestsList = selectedInterests.map(i => i.charAt(0).toUpperCase() + i.slice(1)).join(', ');
+
+            const emailSubject = 'Weekend Activity Subscription Request';
+            const emailBody = `Please set me up for weekend activity recommendations!\n\n` +
+                `Location: ${location}\n` +
+                `Interests: ${interestsList}\n\n` +
+                `I would like to receive 4-5 activity recommendations every Friday for the upcoming weekend.\n\n` +
+                `NOTE: This is a manual subscription request. To set up automated emails, you would need to:\n` +
+                `1. Save this webpage to your computer\n` +
+                `2. Use a service like IFTTT, Zapier, or a calendar reminder to visit this page weekly\n` +
+                `3. Or create a recurring calendar event to remind yourself to check for new recommendations\n\n` +
+                `Alternatively, you can bookmark this page with your preferences and visit it every Friday!`;
+
+            const mailtoLink = `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+            window.location.href = mailtoLink;
+
+            // Show helpful message
+            setTimeout(() => {
+                alert('💡 Tip: Since this is a browser-based app, automated emails require external services.\n\n' +
+                      'Easy alternatives:\n' +
+                      '• Bookmark this page and visit every Friday\n' +
+                      '• Set a weekly calendar reminder\n' +
+                      '• Use the "Surprise Me" button for quick suggestions!');
+            }, 500);
+        }
+
+        function formatAddress(tags) {
+            const parts = [];
+            if (tags['addr:street']) {
+                const street = tags['addr:housenumber']
+                    ? `${tags['addr:housenumber']} ${tags['addr:street']}`
+                    : tags['addr:street'];
+                parts.push(street);
+            }
+            if (tags['addr:city']) parts.push(tags['addr:city']);
+            return parts.join(', ');
+        }
+
+        function getCategoryIcon(category) {
+            const icons = {
+                'Cafes': '☕',
+                'Museums': '🏛️',
+                'Historical': '🏰',
+                'Parks': '🌳',
+                'Restaurants': '🍽️',
+                'Shopping': '🛍️',
+                'Entertainment': '🎬',
+                'Outdoor': '⛰️',
+                'Bars': '🍺',
+                'Libraries': '📚',
+                'Galleries': '🎨',
+                'Fitness': '💪',
+                'Spa': '💆',
+                'Bookstores': '📖'
+            };
+            return icons[category] || '📍';
+        }
+
+        function getDefaultDescription(category) {
+            const descriptions = {
+                'Cafes': 'A local cafe in your area',
+                'Museums': 'Cultural institution with exhibits and collections',
+                'Historical': 'Historic site or landmark',
+                'Parks': 'Green space for outdoor activities',
+                'Restaurants': 'Dining establishment',
+                'Shopping': 'Retail location',
+                'Entertainment': 'Entertainment venue',
+                'Outdoor': 'Outdoor recreation area',
+                'Bars': 'Bar or pub for drinks and socializing',
+                'Libraries': 'Public library with books and resources',
+                'Galleries': 'Art gallery showcasing various artworks',
+                'Fitness': 'Fitness or sports center for physical activities',
+                'Spa': 'Spa or wellness center for relaxation',
+                'Bookstores': 'Bookstore with a wide selection of books'
+            };
+            return descriptions[category] || 'Local point of interest';
+        }
+
+        function formatTime(hours) {
+            const period = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
+            return `${displayHours}:00 ${period}`;
+        }
+
+        function formatTimeDisplay(timeString) {
+            const [hours, minutes] = timeString.split(':').map(Number);
+            const period = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
+            return minutes > 0 ? `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}` : `${displayHours}:00 ${period}`;
+        }
+    </script>
+</body>
+</html>
